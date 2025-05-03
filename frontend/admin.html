@@ -2,26 +2,29 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ панель</title>
     <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
     <h1>Админ панель</h1>
-    <h2>Создание теста</h2>
+
+    <!-- Создание теста -->
+    <h2>Создание нового теста</h2>
     <form id="create-test-form">
         <input type="text" id="test-title" placeholder="Название теста" required>
-        <textarea id="test-description" placeholder="Описание теста"></textarea>
+        <textarea id="test-description" placeholder="Описание теста" required></textarea>
         <button type="submit">Создать тест</button>
     </form>
 
-    <h2>Добавить вопрос</h2>
+    <h2>Добавить вопрос в тест</h2>
     <form id="add-question-form">
         <input type="text" id="question-text" placeholder="Текст вопроса" required>
         <input type="number" id="test-id" placeholder="ID теста" required>
         <button type="submit">Добавить вопрос</button>
     </form>
 
-    <h2>Добавить ответ</h2>
+    <h2>Добавить ответ на вопрос</h2>
     <form id="add-answer-form">
         <input type="text" id="answer-text" placeholder="Текст ответа" required>
         <input type="number" id="question-id" placeholder="ID вопроса" required>
@@ -30,7 +33,53 @@
         <button type="submit">Добавить ответ</button>
     </form>
 
+    <!-- Место для вывода сообщений -->
+    <div id="message"></div>
+
     <script>
+        // Функция для отправки данных на сервер
+        async function sendRequest(url, data) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        }
+
+        // Обработчик создания теста
         document.getElementById('create-test-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const
+            const title = document.getElementById('test-title').value;
+            const description = document.getElementById('test-description').value;
+
+            const data = await sendRequest('/api/create_test', { title, description });
+            document.getElementById('message').innerText = data.message || 'Ошибка при создании теста';
+            alert(data.message || 'Ошибка');
+        });
+
+        // Обработчик добавления вопроса
+        document.getElementById('add-question-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const question = document.getElementById('question-text').value;
+            const test_id = document.getElementById('test-id').value;
+
+            const data = await sendRequest('/api/create_question', { question, test_id });
+            document.getElementById('message').innerText = data.message || 'Ошибка при добавлении вопроса';
+            alert(data.message || 'Ошибка');
+        });
+
+        // Обработчик добавления ответа
+        document.getElementById('add-answer-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const answer = document.getElementById('answer-text').value;
+            const question_id = document.getElementById('question-id').value;
+            const is_correct = document.getElementById('is-correct').checked;
+
+            const data = await sendRequest('/api/create_answer', { answer, question_id, is_correct });
+            document.getElementById('message').innerText = data.message || 'Ошибка при добавлении ответа';
+            alert(data.message || 'Ошибка');
+        });
+    </script>
+</body>
+</html>
