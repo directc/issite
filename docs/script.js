@@ -1,6 +1,6 @@
 // Настройка Supabase
-const supabaseUrl = 'https://ВАШ-PROJECT.supabase.co'
-const supabaseKey = 'ВАШ-PUBLIC-KEY'
+const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0'
 const supabase = supabase.createClient(supabaseUrl, supabaseKey)
 
 // Данные
