@@ -1,0 +1,6 @@
+supabase
+fastapi
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+uvicorn
