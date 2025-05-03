@@ -1,4 +1,0 @@
-flask
-supabase-py
-requests
-flask-cors
