@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ панель</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <h1>Админ панель</h1>
+    <h2>Создание теста</h2>
+    <form id="create-test-form">
+        <input type="text" id="test-title" placeholder="Название теста" required>
+        <textarea id="test-description" placeholder="Описание теста"></textarea>
+        <button type="submit">Создать тест</button>
+    </form>
+
+    <h2>Добавить вопрос</h2>
+    <form id="add-question-form">
+        <input type="text" id="question-text" placeholder="Текст вопроса" required>
+        <input type="number" id="test-id" placeholder="ID теста" required>
+        <button type="submit">Добавить вопрос</button>
+    </form>
+
+    <h2>Добавить ответ</h2>
+    <form id="add-answer-form">
+        <input type="text" id="answer-text" placeholder="Текст ответа" required>
+        <input type="number" id="question-id" placeholder="ID вопроса" required>
+        <label for="is-correct">Правильный ответ</label>
+        <input type="checkbox" id="is-correct" />
+        <button type="submit">Добавить ответ</button>
+    </form>
+
+    <script>
+        document.getElementById('create-test-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const
