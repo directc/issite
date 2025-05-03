@@ -1,6 +1,6 @@
 // 1. Инициализация Supabase (должна быть в самом начале)
 const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjIzMDU4NCwiZXhwIjoyMDYxODA2NTg0fQ.Cfey4xKHpAVbVogrFG-QRR9MR-oMbqrn-QLl_haCc6M';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // 2. Остальной код (после инициализации Supabase)
