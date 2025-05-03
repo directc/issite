@@ -39,9 +39,9 @@ function updateTimers() {
         const timerDiv = document.createElement('div');
         timerDiv.className = 'timer';
         
-        if (data.current_time <= 20 && data.current_time > 0) {
+        if (data.current_seconds <= 20 && data.current_seconds > 0) {
             timerDiv.classList.add('alert');
-        } else if (data.current_time <= 60) {
+        } else if (data.current_seconds <= 60) {
             timerDiv.classList.add('warning');
         }
         
@@ -51,7 +51,7 @@ function updateTimers() {
         
         const timeSpan = document.createElement('span');
         timeSpan.className = 'timer-time';
-        timeSpan.textContent = `${formatTime(data.current_time)} / ${formatTime(data.max_time)}`;
+        timeSpan.textContent = `${formatTime(data.current_seconds)} / ${formatTime(data.max_seconds)}`;
         
         timerDiv.appendChild(nameSpan);
         timerDiv.appendChild(timeSpan);
@@ -295,7 +295,7 @@ adminControlsBtn.addEventListener('click', async () => {
                 
                 const maxTimeInput = document.createElement('input');
                 maxTimeInput.type = 'number';
-                maxTimeInput.value = mine.max_time;
+                maxTimeInput.value = mine.max_seconds;
                 maxTimeInput.min = 1;
                 maxTimeInput.dataset.id = mine.id;
                 maxTimeInput.style.width = '80px';
@@ -321,7 +321,7 @@ document.getElementById('saveTimersBtn').addEventListener('click', async () => {
     inputs.forEach(input => {
         updates.push({
             id: input.dataset.id,
-            max_time: parseInt(input.value)
+            max_seconds: parseInt(input.value)
         });
     });
     
