@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестирование</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <h1>Добро пожаловать в тест!</h1>
+
+    <!-- Форма для входа -->
+    <div id="login-container">
+        <h2>Вход в систему</h2>
+        <form id="login-form">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Пароль" required>
+            <button type="submit">Войти</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <!-- Форма для выбора теста -->
+    <div id="test-selection-container" style="display: none;">
+        <h2>Выберите тест</h2>
+        <select id="test-list"></select>
+        <button id="start-test">Начать тест</button>
+    </div>
+
+    <script>
+        // Функция для отправки данных на сервер
+        async function sendRequest(url, data) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        }
+
+        // Обработчик формы входа
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Отправляем запрос на вход
+            const data = await sendRequest('/api/login', { email, password });
+            
+            if (data.token) {
+                // Если токен получен, показываем выбор теста
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('test-selection-container').style.display = 'block';
+                loadTests(data.token);
+            } else {
+                document.getElementById('message').innerText = data.error || 'Ошибка при входе';
+            }
+        });
+
+        // Загрузка доступных тестов
+        async function loadTests(token) {
+            const res = await fetch('/api/get_tests', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+
+            if (data.tests) {
+                const testList = document.getElementById('test-list');
+                testList.innerHTML = '';
+                data.tests.forEach(test => {
+                    const option = document.createElement('option');
+                    option.value = test.id;
+                    option.innerText = test.title;
+                    testList.appendChild(option);
+                });
+            }
+        }
+
+        // Обработчик начала теста
+        document.getElementById('start-test').addEventListener('click', async function() {
+            const testId = document.getElementById('test-list').value;
+            // Отправляем запрос на начало теста
+            const data = await sendRequest('/api/start_test', { test_id: testId });
+            // Редирект на страницу с вопросами или показываем результат
+            alert(data.message || 'Не удалось начать тест');
+        });
+    </script>
+</body>
+</html>
