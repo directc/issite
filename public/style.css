@@ -1,1 +1,203 @@
 /* Ваши существующие стили остаются без изменений */
+/* Основные стили */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+/* Контейнер приложения */
+.app-container {
+  display: flex;
+  max-width: 1000px;
+  margin: 0 auto;
+  gap: 20px;
+}
+
+/* Секция таймеров */
+.timers-section {
+  flex: 2;
+  background-color: white;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.timers-header {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+/* Стили для списка таймеров */
+.timers-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.timer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  border-left: 4px solid #4a90e2;
+}
+
+.timer-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.timer-time {
+  font-family: 'Courier New', monospace;
+  color: #7f8c8d;
+}
+
+.timer-time span {
+  color: #2c3e50;
+  font-weight: bold;
+}
+
+/* Секция чата */
+.chat-section {
+  flex: 1;
+  background-color: white;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+/* Стили для сообщений чата */
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  max-height: 400px;
+  padding-right: 5px;
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  position: relative;
+}
+
+.message-sender {
+  font-weight: bold;
+  color: #2980b9;
+  margin-right: 8px;
+}
+
+.message-time {
+  font-size: 0.75rem;
+  color: #95a5a6;
+}
+
+.message-content {
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+/* Форма ввода сообщения */
+.chat-input-container {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input {
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.chat-input:focus {
+  border-color: #4a90e2;
+}
+
+.send-btn {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 0 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.send-btn:hover {
+  background-color: #3a80d2;
+}
+
+/* Кнопки администрирования */
+.admin-actions {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+  text-align: center;
+}
+
+.admin-btn:hover {
+  background-color: #c0392b;
+}
+
+/* Адаптация для мобильных устройств */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .timers-section,
+  .chat-section {
+    width: 100%;
+  }
+  
+  .chat-messages {
+    max-height: 250px;
+  }
+}
+
+/* Анимации */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.timer-alert {
+  animation: pulse 2s infinite;
+  background-color: #ffebee;
+  border-left-color: #f44336;
+}
