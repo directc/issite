@@ -15,8 +15,8 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 class Mine(BaseModel):
     id: int
     name: str
-    current_time: int
-    max_time: int
+    current_seconds: int
+    max_seconds: int
     updated_at: datetime
 
 @app.get("/mines", response_model=List[Mine])
@@ -35,8 +35,8 @@ async def update_mines(mines: List[dict], current_user: User = Depends(get_curre
     for mine in mines:
         supabase.table("mines") \
             .update({
-                "max_time": mine["max_time"],
-                "current_time": mine["max_time"],  # Сбрасываем таймер
+                "max_seconds": mine["max_seconds"],
+                "current_seconds": mine["max_seconds"],  # Сбрасываем таймер
                 "updated_at": datetime.utcnow().isoformat()
             }) \
             .eq("id", mine["id"]) \
@@ -56,14 +56,14 @@ async def update_mines_timers():
         last_updated = datetime.fromisoformat(mine["updated_at"])
         seconds_passed = (now - last_updated).total_seconds()
         
-        current_time = max(0, mine["current_time"] - int(seconds_passed))
-        if current_time <= 0:
-            current_time = mine["max_time"]
+        current_seconds = max(0, mine["current_seconds"] - int(seconds_passed))
+        if current_seconds <= 0:
+            current_seconds = mine["max_seconds"]
         
-        if current_time != mine["current_time"]:
+        if current_seconds != mine["current_seconds"]:
             updates.append({
                 "id": mine["id"],
-                "current_time": current_time,
+                "current_seconds": current_seconds,
                 "updated_at": now.isoformat()
             })
     
