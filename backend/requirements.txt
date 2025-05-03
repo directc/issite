@@ -1,4 +1,4 @@
 flask
-supabase
+supabase-py
 requests
 flask-cors
