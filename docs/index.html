@@ -8,20 +8,54 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="container">
-    <!-- Секция таймеров -->
-    <div class="timers-section">
-      <h1>Таймеры шахт</h1>
-      <div id="timersContainer"></div>
+  <!-- Форма авторизации -->
+  <div id="auth-container" class="auth-container">
+    <div class="auth-form">
+      <h2>Вход в систему</h2>
+      <div class="auth-tabs">
+        <button class="tab-btn active" data-tab="login">Вход</button>
+        <button class="tab-btn" data-tab="register">Регистрация</button>
+      </div>
+      
+      <div id="login-form" class="tab-content active">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Пароль" required>
+        <button id="login-btn" class="auth-btn">Войти</button>
+      </div>
+      
+      <div id="register-form" class="tab-content">
+        <input type="email" id="register-email" placeholder="Email" required>
+        <input type="password" id="register-password" placeholder="Пароль" required>
+        <input type="text" id="register-username" placeholder="Имя пользователя" required>
+        <button id="register-btn" class="auth-btn">Зарегистрироваться</button>
+      </div>
+      
+      <div id="auth-message" class="auth-message"></div>
     </div>
+  </div>
 
-    <!-- Секция чата -->
-    <div class="chat-section">
-      <h1>Чат</h1>
-      <div id="chatMessages"></div>
-      <div class="chat-input">
-        <input type="text" id="chatInput" placeholder="Ваше сообщение...">
-        <button id="sendBtn">Отправить</button>
+  <!-- Основное приложение (изначально скрыто) -->
+  <div id="app-container" class="container" style="display: none;">
+    <div class="header">
+      <h1>Таймеры шахт с чатом</h1>
+      <button id="logout-btn" class="logout-btn">Выйти</button>
+    </div>
+    
+    <div class="main-content">
+      <!-- Секция таймеров -->
+      <div class="timers-section">
+        <h2>Таймеры шахт</h2>
+        <div id="timersContainer"></div>
+      </div>
+
+      <!-- Секция чата -->
+      <div class="chat-section">
+        <h2>Чат</h2>
+        <div id="chatMessages"></div>
+        <div class="chat-input">
+          <input type="text" id="chatInput" placeholder="Ваше сообщение...">
+          <button id="sendBtn">Отправить</button>
+        </div>
       </div>
     </div>
   </div>
