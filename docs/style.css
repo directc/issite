@@ -6,9 +6,19 @@ body {
 }
 
 .container {
-  display: flex;
   max-width: 1000px;
   margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.content {
+  display: flex;
   gap: 20px;
 }
 
@@ -17,6 +27,7 @@ body {
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  flex: 1;
 }
 
 #timersContainer {
@@ -32,17 +43,48 @@ body {
   border-left: 4px solid #4682b4;
 }
 
+.timer.warning {
+  border-left-color: #ff6b6b;
+}
+
 #chatMessages {
   height: 300px;
   overflow-y: auto;
   margin-bottom: 15px;
   border: 1px solid #ddd;
   padding: 10px;
+  background: white;
+}
+
+.message {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.message-time {
+  color: #666;
+  font-size: 0.8em;
+  margin-left: 10px;
 }
 
 .chat-input {
   display: flex;
   gap: 10px;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+}
+
+button {
+  padding: 10px 15px;
+  background: #4682b4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 /* Стили для страницы авторизации */
@@ -70,15 +112,6 @@ body {
   box-sizing: border-box;
 }
 
-button {
-  padding: 10px 15px;
-  background: #4682b4;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
 .error-message {
   color: red;
   margin-top: 10px;
@@ -86,7 +119,7 @@ button {
 
 /* Адаптация для мобильных */
 @media (max-width: 768px) {
-  .container {
+  .content {
     flex-direction: column;
   }
 }
