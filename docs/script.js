@@ -1,3 +1,4 @@
+//04.05.2025 11:54
 document.addEventListener('DOMContentLoaded', async () => {
   // Инициализация Supabase
   const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
