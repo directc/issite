@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Авторизация</title>
-  <link rel="stylesheet" href="style рабочий.css">
+  <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@
           if (error) throw error;
           
           // После успешного входа перенаправляем на главную страницу
-          window.location.href = 'index (рабочий).html';
+          window.location.href = 'index.html';
         } catch (err) {
           errorElement.textContent = err.message;
         }
