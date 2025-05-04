@@ -93,6 +93,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       `).join('');
     };
 
+    // Обновление таймеров каждую секунду
+    setInterval(() => {
+      // Уменьшаем current_seconds каждого таймера
+      mines.forEach(mine => {
+        if (mine.current_seconds < mine.max_seconds) {
+          mine.current_seconds++;
+        }
+      });
+
+      // Обновляем отображение
+      updateTimers();
+    }, 1000);
+
     // Чат
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
@@ -148,9 +161,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Инициализация
     await loadMines();
     await loadChat();
-    
-    // Обновление таймеров каждую секунду
-    setInterval(updateTimers, 1000);
     
     // Отправка сообщения
     sendBtn.addEventListener('click', sendMessage);
