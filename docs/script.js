@@ -31,19 +31,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   const loadMines = async () => {
-    const { data, error } = await supabaseClient.from('mines').select('*');
-    if (error) return console.error('Mines load error:', error);
-    
+  const { data, error } = await supabaseClient.from('mines').select('*');
+  if (!error) {
+    // Обновляем время с учетом прошедшего времени
     mines = data.map(mine => {
       const elapsed = calculateElapsedTime(mine.updated_at);
-      let current = Math.max(0, mine.current_seconds - elapsed);
-      if (current <= 0) current = mine.max_seconds - (Math.abs(current) % mine.max_seconds;
+      let current = mine.current_seconds - elapsed;
+      if (current <= 0) {
+        current = mine.max_seconds - (Math.abs(current) % mine.max_seconds);
+      }
       return { ...mine, current_seconds: current };
     });
-    
     updateTimers();
     startTimers();
-  };
+  }
+};
 
   const updateTimers = () => {
     timersContainer.innerHTML = mines.map(mine => `
