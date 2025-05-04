@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Авторизация</title>
+  <link rel="stylesheet" href="style рабочий.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Авторизация</h1>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" required>
+      </div>
+      <button type="submit">Войти</button>
+      <div id="loginError" class="error-message"></div>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0';
+      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorElement = document.getElementById('loginError');
+
+        try {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (error) throw error;
+          
+          // После успешного входа перенаправляем на главную страницу
+          window.location.href = 'index (рабочий).html';
+        } catch (err) {
+          errorElement.textContent = err.message;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
