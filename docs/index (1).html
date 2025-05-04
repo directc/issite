@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Таймеры шахт с чатом</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Секция таймеров -->
+    <div class="timers-section">
+      <h1>Таймеры шахт</h1>
+      <div id="timersContainer"></div>
+    </div>
+
+    <!-- Секция чата -->
+    <div class="chat-section">
+      <h1>Чат</h1>
+      <div id="chatMessages"></div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Ваше сообщение...">
+        <button id="sendBtn">Отправить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
