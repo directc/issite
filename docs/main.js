@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   // Проверка авторизации
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-  if (authError || !user) {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
     window.location.href = 'login.html';
     return;
   }
@@ -18,80 +18,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sendBtn = document.getElementById('sendBtn');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  // Состояние приложения
-  let mines = [];
-
-  // ====================== ТАЙМЕРЫ ======================
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const calculateElapsedTime = (lastUpdated) => {
-    return Math.floor((Date.now() - new Date(lastUpdated).getTime()) / 1000);
-  };
-
-  const loadMines = async () => {
-    const { data, error } = await supabaseClient.from('mines').select('*');
-    if (!error) {
-      mines = data.map(mine => {
-        const elapsed = calculateElapsedTime(mine.updated_at);
-        let current = mine.current_seconds - elapsed;
-        if (current <= 0) {
-          current = mine.max_seconds - (Math.abs(current) % mine.max_seconds);
-        }
-        return { ...mine, current_seconds: current };
-      });
-      updateTimers();
-      startTimers();
-    }
-  };
-
-  const updateTimers = () => {
-    if (!timersContainer) return;
-    timersContainer.innerHTML = mines.map(mine => `
-      <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}">
-        <span class="timer-name">${mine.name}</span>
-        <span class="timer-time">${formatTime(mine.current_seconds)} / ${formatTime(mine.max_seconds)}</span>
-      </div>
-    `).join('');
-  };
-
-  const startTimers = () => {
-    setInterval(async () => {
-      mines.forEach(mine => {
-        mine.current_seconds = Math.max(0, mine.current_seconds - 1);
-        if (mine.current_seconds <= 0) mine.current_seconds = mine.max_seconds;
-      });
-      
-      updateTimers();
-      if (Date.now() % 10000 < 50) await syncTimers();
-    }, 1000);
-  };
-
-  const syncTimers = async () => {
-    const updates = mines.map(mine => ({
-      id: mine.id,
-      current_seconds: mine.current_seconds,
-      updated_at: new Date().toISOString()
-    }));
-    
-    const { error } = await supabaseClient.from('mines').upsert(updates);
-    if (error) console.error('Sync error:', error);
-  };
-
   // ====================== ЧАТ ======================
   const loadChat = async () => {
     try {
+      // Загружаем сообщения с информацией о пользователях
       const { data, error } = await supabaseClient
         .from('chat_messages')
-        .select('id, message, created_at, profiles:user_id (username)')
+        .select(`
+          id,
+          message,
+          created_at,
+          profiles:user_id (username)
+        `)
+        .not('message', 'is', null) // Исключаем пустые сообщения
         .order('created_at', { ascending: true })
         .limit(50);
       
       if (error) throw error;
       
+      // Отображаем сообщения
       chatMessages.innerHTML = data.map(msg => `
         <div class="message">
           <strong>${msg.profiles?.username || 'Гость'}</strong>
@@ -113,9 +58,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!message) return;
 
     try {
+      // Проверяем авторизацию
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) throw new Error('Требуется авторизация');
       
+      // Создаем профиль, если его нет
+      await supabaseClient
+        .from('profiles')
+        .upsert({ 
+          user_id: user.id, 
+          username: user.email.split('@')[0] 
+        }, { onConflict: 'user_id' });
+      
+      // Отправляем сообщение
       const { error } = await supabaseClient
         .from('chat_messages')
         .insert({ 
@@ -128,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       chatInput.value = '';
     } catch (err) {
       console.error('Send error:', err);
-      alert(err.message);
+      alert('Ошибка отправки: ' + err.message);
     }
   };
 
@@ -141,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: 'user_id=neq.null'
+          filter: 'message=neq.null' // Только сообщения с текстом
         },
         () => loadChat()
       )
@@ -154,9 +109,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html';
   });
 
-  // Инициализация приложения
-  const init = async () => {
-    await loadMines();
+  // Инициализация чата
+  const initChat = async () => {
     await loadChat();
     setupRealtimeChat();
     
@@ -166,5 +120,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   };
 
-  init();
+  initChat();
 });
