@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = 'index.html';
     } catch (err) {
       errorElement.textContent = err.message;
-      console.error('Ошибка входа:', err);
+      console.error('Login error:', err);
     }
   });
 });
