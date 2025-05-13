@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Инициализация Supabase с явными настройками
+  // Инициализация Supabase
   const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0';
   
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
-  // Загрузка чата с обработкой ошибок
+  // Загрузка чата
   const loadChat = async () => {
     try {
       const { data, error } = await supabaseClient
@@ -52,36 +52,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         .order('created_at', { ascending: true })
         .limit(50);
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       chatData = data;
       renderChat();
     } catch (err) {
       console.error('Ошибка загрузки чата:', err);
-      // Фолбэк: прямой запрос к API
-      try {
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/chat_messages?select=id,message,created_at,profiles:user_id(username)&order=created_at.asc&limit=50`,
-          {
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
-            }
-          }
-        );
-        const fallbackData = await response.json();
-        chatData = fallbackData;
-        renderChat();
-      } catch (fallbackErr) {
-        console.error('Фолбэк запрос не удался:', fallbackErr);
-      }
     }
   };
 
-  // Отправка сообщения с мгновенным отображением
+  // Отправка сообщения
   const sendMessage = async () => {
     const message = chatInput.value.trim();
     if (!message) return;
@@ -119,16 +99,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  // Автообновление чата
+  // Автообновление чата (исправленная версия)
   const startChatUpdater = () => {
     setInterval(async () => {
       try {
-        const lastMsgId = chatData[chatData.length - 1]?.id;
-        if (lastMsgId) {
+        const lastMsg = chatData[chatData.length - 1];
+        
+        if (lastMsg && !lastMsg.id.startsWith('temp-')) {
           const { data } = await supabaseClient
             .from('chat_messages')
             .select('id')
-            .gt('id', lastMsgId.replace('temp-', ''))
+            .gt('created_at', lastMsg.created_at)
+            .order('created_at', { ascending: false })
             .limit(1);
           
           if (data && data.length > 0) {
