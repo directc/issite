@@ -1,89 +1,30 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Инициализация Supabase
+  // Инициализация Supabase с явными настройками
   const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0';
-  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+  
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+    db: { schema: 'public' },
+    auth: { persistSession: true }
+  });
 
   // Проверка авторизации
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-  if (authError || !user) {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
     window.location.href = 'login.html';
     return;
   }
 
   // DOM элементы
-  const timersContainer = document.getElementById('timersContainer');
   const chatMessages = document.getElementById('chatMessages');
   const chatInput = document.getElementById('chatInput');
   const sendBtn = document.getElementById('sendBtn');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  // Состояние приложения
-  let mines = [];
+  // Состояние чата
   let chatData = [];
-  let lastMessageId = 0;
 
-  // ====================== ТАЙМЕРЫ ======================
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const calculateElapsedTime = (lastUpdated) => {
-    return Math.floor((Date.now() - new Date(lastUpdated).getTime()) / 1000);
-  };
-
-  const loadMines = async () => {
-    const { data, error } = await supabaseClient.from('mines').select('*');
-    if (!error) {
-      mines = data.map(mine => {
-        const elapsed = calculateElapsedTime(mine.updated_at);
-        let current = mine.current_seconds - elapsed;
-        if (current <= 0) {
-          current = mine.max_seconds - (Math.abs(current) % mine.max_seconds);
-        }
-        return { ...mine, current_seconds: current };
-      });
-      updateTimers();
-      startTimers();
-    }
-  };
-
-  const updateTimers = () => {
-    if (!timersContainer) return;
-    timersContainer.innerHTML = mines.map(mine => `
-      <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}">
-        <span class="timer-name">${mine.name}</span>
-        <span class="timer-time">${formatTime(mine.current_seconds)} / ${formatTime(mine.max_seconds)}</span>
-      </div>
-    `).join('');
-  };
-
-  const startTimers = () => {
-    setInterval(async () => {
-      mines.forEach(mine => {
-        mine.current_seconds = Math.max(0, mine.current_seconds - 1);
-        if (mine.current_seconds <= 0) mine.current_seconds = mine.max_seconds;
-      });
-      
-      updateTimers();
-      if (Date.now() % 10000 < 50) await syncTimers();
-    }, 1000);
-  };
-
-  const syncTimers = async () => {
-    const updates = mines.map(mine => ({
-      id: mine.id,
-      current_seconds: mine.current_seconds,
-      updated_at: new Date().toISOString()
-    }));
-    
-    const { error } = await supabaseClient.from('mines').upsert(updates);
-    if (error) console.error('Sync error:', error);
-  };
-
-  // ====================== ЧАТ ======================
+  // Функция отрисовки сообщений
   const renderChat = () => {
     chatMessages.innerHTML = chatData.map(msg => `
       <div class="message">
@@ -97,52 +38,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
+  // Загрузка чата с обработкой ошибок
   const loadChat = async () => {
     try {
       const { data, error } = await supabaseClient
         .from('chat_messages')
-        .select('id, message, created_at, profiles:user_id (username)')
+        .select(`
+          id, 
+          message, 
+          created_at, 
+          profiles:user_id (username)
+        `)
         .order('created_at', { ascending: true })
         .limit(50);
-      
-      if (!error && data.length > 0) {
-        chatData = data;
-        lastMessageId = data[data.length - 1].id;
-        renderChat();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
       }
+
+      chatData = data;
+      renderChat();
     } catch (err) {
       console.error('Ошибка загрузки чата:', err);
-    }
-  };
-
-  const checkNewMessages = async () => {
-    try {
-      const { data } = await supabaseClient
-        .from('chat_messages')
-        .select('id')
-        .gt('id', lastMessageId)
-        .order('id', { ascending: false })
-        .limit(1);
-      
-      if (data && data.length > 0) {
-        await loadChat();
+      // Фолбэк: прямой запрос к API
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/chat_messages?select=id,message,created_at,profiles:user_id(username)&order=created_at.asc&limit=50`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            }
+          }
+        );
+        const fallbackData = await response.json();
+        chatData = fallbackData;
+        renderChat();
+      } catch (fallbackErr) {
+        console.error('Фолбэк запрос не удался:', fallbackErr);
       }
-    } catch (err) {
-      console.error('Ошибка проверки новых сообщений:', err);
     }
   };
 
+  // Отправка сообщения с мгновенным отображением
   const sendMessage = async () => {
     const message = chatInput.value.trim();
     if (!message) return;
 
     try {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) throw new Error('Требуется авторизация');
-      
-      // Локальное добавление для мгновенного отображения
+      // Мгновенное отображение
       const tempMsg = {
-        id: Date.now(),
+        id: `temp-${Date.now()}`,
         message,
         created_at: new Date().toISOString(),
         profiles: { username: user.email.split('@')[0] }
@@ -150,41 +97,58 @@ document.addEventListener('DOMContentLoaded', async () => {
       chatData.push(tempMsg);
       renderChat();
       chatInput.value = '';
-      
+
+      // Отправка на сервер
       const { error } = await supabaseClient
         .from('chat_messages')
         .insert({ 
           message, 
           user_id: user.id 
         });
-      
+
       if (error) throw error;
-      
-      // Обновляем после успешной отправки
+
+      // Обновляем чат после успешной отправки
       await loadChat();
     } catch (err) {
       console.error('Ошибка отправки:', err);
       // Удаляем временное сообщение при ошибке
       chatData = chatData.filter(m => m.id !== tempMsg.id);
       renderChat();
-      alert('Ошибка отправки: ' + err.message);
+      alert('Ошибка отправки сообщения');
     }
   };
 
-  // Автообновление чата каждые 2 секунды
+  // Автообновление чата
   const startChatUpdater = () => {
-    setInterval(checkNewMessages, 2000);
+    setInterval(async () => {
+      try {
+        const lastMsgId = chatData[chatData.length - 1]?.id;
+        if (lastMsgId) {
+          const { data } = await supabaseClient
+            .from('chat_messages')
+            .select('id')
+            .gt('id', lastMsgId.replace('temp-', ''))
+            .limit(1);
+          
+          if (data && data.length > 0) {
+            await loadChat();
+          }
+        }
+      } catch (err) {
+        console.error('Ошибка проверки обновлений:', err);
+      }
+    }, 2000);
   };
 
-  // Обработчик выхода
+  // Выход
   logoutBtn.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
     window.location.href = 'login.html';
   });
 
-  // Инициализация приложения
+  // Инициализация
   const init = async () => {
-    await loadMines();
     await loadChat();
     startChatUpdater();
     
