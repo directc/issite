@@ -66,14 +66,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const message = chatInput.value.trim();
     if (!message) return;
 
+    const tempMsg = {
+      id: `temp-${Date.now()}`,
+      message,
+      created_at: new Date().toISOString(),
+      profiles: { username: user.email.split('@')[0] }
+    };
+
     try {
       // Мгновенное отображение
-      const tempMsg = {
-        id: `temp-${Date.now()}`,
-        message,
-        created_at: new Date().toISOString(),
-        profiles: { username: user.email.split('@')[0] }
-      };
       chatData.push(tempMsg);
       renderChat();
       chatInput.value = '';
@@ -99,23 +100,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  // Автообновление чата (исправленная версия)
+  // Автообновление чата (надежная версия)
   const startChatUpdater = () => {
     setInterval(async () => {
       try {
-        const lastMsg = chatData[chatData.length - 1];
+        if (chatData.length === 0) return;
         
-        if (lastMsg && !lastMsg.id.startsWith('temp-')) {
-          const { data } = await supabaseClient
-            .from('chat_messages')
-            .select('id')
-            .gt('created_at', lastMsg.created_at)
-            .order('created_at', { ascending: false })
-            .limit(1);
-          
-          if (data && data.length > 0) {
-            await loadChat();
-          }
+        const lastMsg = chatData[chatData.length - 1];
+        if (!lastMsg || !lastMsg.id || typeof lastMsg.id !== 'string') return;
+        if (String(lastMsg.id).startsWith('temp-')) return;
+        
+        const lastTimestamp = new Date(lastMsg.created_at).getTime();
+        
+        const { data } = await supabaseClient
+          .from('chat_messages')
+          .select('id,created_at')
+          .gt('created_at', new Date(lastTimestamp).toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (data && data.length > 0) {
+          await loadChat();
         }
       } catch (err) {
         console.error('Ошибка проверки обновлений:', err);
