@@ -11,12 +11,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Проверка срока действия аккаунта
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('expires_at, is_admin')
+    .eq('user_id', user.id)
+    .single();
+
+  if (profile && profile.expires_at && new Date(profile.expires_at) < new Date()) {
+    alert('Ваш аккаунт истек. Пожалуйста, обратитесь к администратору.');
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+    return;
+  }
+
   // DOM элементы
   const timersContainer = document.getElementById('timersContainer');
   const chatMessages = document.getElementById('chatMessages');
   const chatInput = document.getElementById('chatInput');
   const sendBtn = document.getElementById('sendBtn');
   const logoutBtn = document.getElementById('logoutBtn');
+  const adminBtn = document.getElementById('adminBtn');
+
+  // Добавляем кнопку админки если пользователь админ
+  if (profile && profile.is_admin) {
+    const header = document.querySelector('.header');
+    if (header) {
+      const adminBtn = document.createElement('button');
+      adminBtn.id = 'adminBtn';
+      adminBtn.textContent = 'Админка';
+      header.insertBefore(adminBtn, logoutBtn);
+      
+      adminBtn.addEventListener('click', () => {
+        window.location.href = 'admin.html';
+      });
+    }
+  }
 
   // Состояние приложения
   let mines = [];
