@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Состояние приложения
   let mines = [];
+  let chatData = [];
+  let lastMessageId = 0;
 
   // ====================== ТАЙМЕРЫ ======================
   const formatTime = (seconds) => {
@@ -82,6 +84,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // ====================== ЧАТ ======================
+  const renderChat = () => {
+    chatMessages.innerHTML = chatData.map(msg => `
+      <div class="message">
+        <strong>${msg.profiles?.username || 'Гость'}</strong>
+        <span class="message-time">
+          ${new Date(msg.created_at).toLocaleTimeString()}
+        </span>
+        <div class="message-content">${msg.message}</div>
+      </div>
+    `).join('');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  };
+
   const loadChat = async () => {
     try {
       const { data, error } = await supabaseClient
@@ -90,21 +105,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         .order('created_at', { ascending: true })
         .limit(50);
       
-      if (error) throw error;
-      
-      chatMessages.innerHTML = data.map(msg => `
-        <div class="message">
-          <strong>${msg.profiles?.username || 'Гость'}</strong>
-          <span class="message-time">
-            ${new Date(msg.created_at).toLocaleTimeString()}
-          </span>
-          <div class="message-content">${msg.message}</div>
-        </div>
-      `).join('');
-      
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      if (!error && data.length > 0) {
+        chatData = data;
+        lastMessageId = data[data.length - 1].id;
+        renderChat();
+      }
     } catch (err) {
-      console.error('Chat load error:', err);
+      console.error('Ошибка загрузки чата:', err);
+    }
+  };
+
+  const checkNewMessages = async () => {
+    try {
+      const { data } = await supabaseClient
+        .from('chat_messages')
+        .select('id')
+        .gt('id', lastMessageId)
+        .order('id', { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        await loadChat();
+      }
+    } catch (err) {
+      console.error('Ошибка проверки новых сообщений:', err);
     }
   };
 
@@ -116,6 +140,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) throw new Error('Требуется авторизация');
       
+      // Локальное добавление для мгновенного отображения
+      const tempMsg = {
+        id: Date.now(),
+        message,
+        created_at: new Date().toISOString(),
+        profiles: { username: user.email.split('@')[0] }
+      };
+      chatData.push(tempMsg);
+      renderChat();
+      chatInput.value = '';
+      
       const { error } = await supabaseClient
         .from('chat_messages')
         .insert({ 
@@ -125,27 +160,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       if (error) throw error;
       
-      chatInput.value = '';
+      // Обновляем после успешной отправки
+      await loadChat();
     } catch (err) {
-      console.error('Send error:', err);
-      alert(err.message);
+      console.error('Ошибка отправки:', err);
+      // Удаляем временное сообщение при ошибке
+      chatData = chatData.filter(m => m.id !== tempMsg.id);
+      renderChat();
+      alert('Ошибка отправки: ' + err.message);
     }
   };
 
-  const setupRealtimeChat = () => {
-    supabaseClient
-      .channel('chat_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: 'user_id=neq.null'
-        },
-        () => loadChat()
-      )
-      .subscribe();
+  // Автообновление чата каждые 2 секунды
+  const startChatUpdater = () => {
+    setInterval(checkNewMessages, 2000);
   };
 
   // Обработчик выхода
@@ -158,7 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const init = async () => {
     await loadMines();
     await loadChat();
-    setupRealtimeChat();
+    startChatUpdater();
     
     sendBtn.addEventListener('click', sendMessage);
     chatInput.addEventListener('keypress', (e) => {
