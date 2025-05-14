@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ панель</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Админ панель</h1>
+      <button id="logoutBtn">Выйти</button>
+    </div>
+
+    <div class="admin-section">
+      <h2>Управление пользователями</h2>
+      <div class="admin-form">
+        <div class="form-group">
+          <label for="newUserEmail">Email:</label>
+          <input type="email" id="newUserEmail" required>
+        </div>
+        <div class="form-group">
+          <label for="newUserPassword">Пароль:</label>
+          <input type="password" id="newUserPassword" required>
+        </div>
+        <div class="form-group">
+          <label for="userExpiry">Срок действия (дней):</label>
+          <input type="number" id="userExpiry" value="30" min="1">
+        </div>
+        <button id="createUserBtn">Создать пользователя</button>
+        <div id="userMessage" class="message"></div>
+      </div>
+
+      <h2>Управление чатом</h2>
+      <div class="chat-controls">
+        <button id="clearChatBtn">Очистить чат сейчас</button>
+        <div id="chatMessage" class="message"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
