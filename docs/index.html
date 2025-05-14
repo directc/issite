@@ -9,20 +9,23 @@
 </head>
 <body>
   <div class="container">
-    <div class="timers-section">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Таймеры шахт</h1>
-        <button id="logoutBtn">Выйти</button>
-      </div>
-      <div id="timersContainer"></div>
+    <div class="header">
+      <h1>Таймеры шахт</h1>
+      <button id="logoutBtn">Выйти</button>
     </div>
 
-    <div class="chat-section">
-      <h1>Чат</h1>
-      <div id="chatMessages"></div>
-      <div class="chat-input">
-        <input type="text" id="chatInput" placeholder="Ваше сообщение...">
-        <button id="sendBtn">Отправить</button>
+    <div class="content">
+      <div class="timers-section">
+        <div id="timersContainer"></div>
+      </div>
+
+      <div class="chat-section">
+        <h2>Чат</h2>
+        <div id="chatMessages"></div>
+        <div class="chat-input">
+          <input type="text" id="chatInput" placeholder="Ваше сообщение...">
+          <button id="sendBtn">Отправить</button>
+        </div>
       </div>
     </div>
   </div>
