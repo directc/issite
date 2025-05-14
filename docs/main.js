@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Добавляем кнопку админки если пользователь админ
   if (profile?.is_admin) {
-    const header = document.querySelector('.timers-section > div');
+    const header = document.querySelector('.header');
     if (header) {
       const adminBtn = document.createElement('button');
       adminBtn.id = 'adminBtn';
