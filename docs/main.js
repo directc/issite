@@ -1,9 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Инициализация Supabase
-  const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0';
-  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
   // Проверка авторизации
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   if (authError || !user) {
@@ -19,35 +14,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     .single();
 
   if (profile && profile.expires_at && new Date(profile.expires_at) < new Date()) {
-    alert('Ваш аккаунт истек. Пожалуйста, обратитесь к администратору.');
+    alert('Ваш аккаунт истек. Обратитесь к администратору.');
     await supabaseClient.auth.signOut();
     window.location.href = 'login.html';
     return;
   }
 
-  // DOM элементы
-  const timersContainer = document.getElementById('timersContainer');
-  const chatMessages = document.getElementById('chatMessages');
-  const chatInput = document.getElementById('chatInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-  const adminBtn = document.getElementById('adminBtn');
-
   // Добавляем кнопку админки если пользователь админ
-  if (profile && profile.is_admin) {
-    const header = document.querySelector('.header');
+  if (profile?.is_admin) {
+    const header = document.querySelector('.timers-section > div');
     if (header) {
       const adminBtn = document.createElement('button');
       adminBtn.id = 'adminBtn';
       adminBtn.textContent = 'Админка';
-      header.insertBefore(adminBtn, logoutBtn);
+      adminBtn.style.marginLeft = '10px';
+      header.appendChild(adminBtn);
       
       adminBtn.addEventListener('click', () => {
         window.location.href = 'admin.html';
       });
     }
   }
-
+  
   // Состояние приложения
   let mines = [];
   let chatData = [];
