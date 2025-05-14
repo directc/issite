@@ -1,8 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Инициализация Supabase
+  // Инициализация Supabase с SERVICE ROLE KEY
   const supabaseUrl = 'https://pnqliwwrebtnngtmmfwc.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMzA1ODQsImV4cCI6MjA2MTgwNjU4NH0.mqjU6-ow_BgjsioIe7IHo_5l5LrIWgThTJ0ciIJLEk0';
-  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBucWxpd3dyZWJ0bm5ndG1tZndjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjIzMDU4NCwiZXhwIjoyMDYxODA2NTg0fQ.Cfey4xKHpAVbVogrFG-QRR9MR-oMbqrn-QLl_haCc6M';
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false
+    }
+  });
 
   // Проверка прав администратора
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -49,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-      // Создаем пользователя
+      // 1. Создаем пользователя через admin API
       const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
         email,
         password,
@@ -58,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (authError) throw authError;
 
-      // Добавляем в профили
+      // 2. Добавляем в профили
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiryDays);
 
