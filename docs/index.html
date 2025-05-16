@@ -11,7 +11,9 @@
   <div class="container">
     <div class="header">
       <h1>Таймеры шахт</h1>
-      <button id="logoutBtn">Выйти</button>
+      <div class="header-buttons">
+        <button id="logoutBtn">Выйти</button>
+      </div>
     </div>
 
     <div class="content">
@@ -29,6 +31,29 @@
       </div>
     </div>
   </div>
+
+  <!-- Модальное окно для редактирования таймера -->
+  <div id="editTimerModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Редактировать таймер</h2>
+      <div class="form-group">
+        <label for="editTimerName">Название:</label>
+        <input type="text" id="editTimerName" disabled>
+      </div>
+      <div class="form-group">
+        <label for="editCurrentTime">Текущее время (сек):</label>
+        <input type="number" id="editCurrentTime">
+      </div>
+      <div class="form-group">
+        <label for="editMaxTime">Макс. время (сек):</label>
+        <input type="number" id="editMaxTime">
+      </div>
+      <button id="saveTimerBtn">Сохранить</button>
+      <div id="timerMessage" class="message"></div>
+    </div>
+  </div>
+
   <script src="auth.js"></script>
   <script src="main.js"></script>
   <script src="online-users.js" type="module"></script>

@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html';
     return;
   }
-const onlineUsersScript = document.createElement('script');
+
+  const onlineUsersScript = document.createElement('script');
   onlineUsersScript.src = 'online-users.js';
   document.body.appendChild(onlineUsersScript);
   
@@ -24,25 +25,24 @@ const onlineUsersScript = document.createElement('script');
   }
 
   // Добавляем кнопку админки если пользователь админ
-  if (profile?.is_admin) {
-    const header = document.querySelector('.header');
-    if (header) {
-      const adminBtn = document.createElement('button');
-      adminBtn.id = 'adminBtn';
-      adminBtn.textContent = 'Админка';
-      adminBtn.style.marginLeft = '10px';
-      header.appendChild(adminBtn);
-      
-      adminBtn.addEventListener('click', () => {
-        window.location.href = 'admin.html';
-      });
-    }
+  const headerButtons = document.querySelector('.header-buttons');
+  if (profile?.is_admin && headerButtons) {
+    const adminBtn = document.createElement('button');
+    adminBtn.id = 'adminBtn';
+    adminBtn.textContent = 'Админка';
+    headerButtons.insertBefore(adminBtn, document.getElementById('logoutBtn'));
+    
+    adminBtn.addEventListener('click', () => {
+      window.location.href = 'admin.html';
+    });
   }
   
   // Состояние приложения
   let mines = [];
   let chatData = [];
   let lastMessageId = 0;
+  let isAdmin = profile?.is_admin || false;
+  let currentEditingMine = null;
 
   // ====================== ТАЙМЕРЫ ======================
   const formatTime = (seconds) => {
@@ -74,11 +74,95 @@ const onlineUsersScript = document.createElement('script');
   const updateTimers = () => {
     if (!timersContainer) return;
     timersContainer.innerHTML = mines.map(mine => `
-      <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}">
+      <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}" data-id="${mine.id}">
         <span class="timer-name">${mine.name}</span>
         <span class="timer-time">${formatTime(mine.current_seconds)} / ${formatTime(mine.max_seconds)}</span>
+        ${isAdmin ? '<button class="edit-timer-btn">✏️</button>' : ''}
       </div>
     `).join('');
+
+    // Добавляем обработчики для кнопок редактирования
+    if (isAdmin) {
+      document.querySelectorAll('.edit-timer-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const timerId = parseInt(btn.closest('.timer').dataset.id);
+          openEditModal(timerId);
+        });
+      });
+    }
+  };
+
+  const openEditModal = (timerId) => {
+    const mine = mines.find(m => m.id === timerId);
+    if (!mine) return;
+
+    currentEditingMine = mine;
+    document.getElementById('editTimerName').value = mine.name;
+    document.getElementById('editCurrentTime').value = mine.current_seconds;
+    document.getElementById('editMaxTime').value = mine.max_seconds;
+    document.getElementById('timerMessage').textContent = '';
+    document.getElementById('editTimerModal').style.display = 'block';
+  };
+
+  const closeEditModal = () => {
+    document.getElementById('editTimerModal').style.display = 'none';
+    currentEditingMine = null;
+  };
+
+  const saveTimerChanges = async () => {
+    if (!currentEditingMine) return;
+
+    const currentTime = parseInt(document.getElementById('editCurrentTime').value);
+    const maxTime = parseInt(document.getElementById('editMaxTime').value);
+    const messageEl = document.getElementById('timerMessage');
+
+    if (isNaN(currentTime) {
+      messageEl.textContent = 'Введите корректное текущее время';
+      messageEl.style.color = 'red';
+      return;
+    }
+
+    if (isNaN(maxTime) || maxTime <= 0) {
+      messageEl.textContent = 'Введите корректное максимальное время';
+      messageEl.style.color = 'red';
+      return;
+    }
+
+    try {
+      const { error } = await supabaseClient
+        .from('mines')
+        .update({
+          current_seconds: currentTime,
+          max_seconds: maxTime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentEditingMine.id);
+
+      if (error) throw error;
+
+      // Обновляем локальные данные
+      const mineIndex = mines.findIndex(m => m.id === currentEditingMine.id);
+      if (mineIndex !== -1) {
+        mines[mineIndex] = {
+          ...mines[mineIndex],
+          current_seconds: currentTime,
+          max_seconds: maxTime
+        };
+      }
+
+      messageEl.textContent = 'Изменения сохранены!';
+      messageEl.style.color = 'green';
+      updateTimers();
+
+      setTimeout(() => {
+        closeEditModal();
+      }, 1000);
+    } catch (err) {
+      console.error('Ошибка сохранения:', err);
+      messageEl.textContent = 'Ошибка сохранения: ' + err.message;
+      messageEl.style.color = 'red';
+    }
   };
 
   const startTimers = () => {
@@ -212,6 +296,15 @@ const onlineUsersScript = document.createElement('script');
     sendBtn.addEventListener('click', sendMessage);
     chatInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendMessage();
+    });
+
+    // Обработчики модального окна
+    document.querySelector('.close').addEventListener('click', closeEditModal);
+    document.getElementById('saveTimerBtn').addEventListener('click', saveTimerChanges);
+    window.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('editTimerModal')) {
+        closeEditModal();
+      }
     });
   };
 
