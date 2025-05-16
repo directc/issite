@@ -51,34 +51,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const calculateElapsedTime = (lastUpdated) => {
-    return Math.floor((Date.now() - new Date(lastUpdated).getTime()) / 1000);
-  };
-
   const loadMines = async () => {
-    const { data, error } = await supabaseClient.from('mines').select('*');
+    const { data, error } = await supabaseClient
+      .from('mines')
+      .select('*')
+      .order('updated_at', { ascending: false }); // Сначала свежие записи
+
     if (!error) {
-      mines = data.map(mine => {
-        // Если таймер был обновлен менее 10 секунд назад, не пересчитываем
-        const lastUpdated = new Date(mine.updated_at).getTime();
-        if (Date.now() - lastUpdated < 10000) {
-          return mine;
-        }
-        
-        const elapsed = calculateElapsedTime(mine.updated_at);
-        let current = mine.current_seconds - elapsed;
-        if (current <= 0) {
-          current = mine.max_seconds - (Math.abs(current) % mine.max_seconds);
-        }
-        return { ...mine, current_seconds: current };
-      });
+      mines = data.map(mine => ({
+        ...mine,
+        current_seconds: mine.current_seconds // Берем значения как есть из БД
+      }));
       updateTimers();
       startTimers();
+    } else {
+      console.error('Ошибка загрузки шахт:', error);
     }
   };
 
   const updateTimers = () => {
+    const timersContainer = document.getElementById('timersContainer');
     if (!timersContainer) return;
+
     timersContainer.innerHTML = mines.map(mine => `
       <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}" data-id="${mine.id}">
         <span class="timer-name">${mine.name}</span>
@@ -87,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `).join('');
 
-    // Добавляем обработчики для кнопок редактирования
+    // Обработчики для кнопок редактирования
     if (isAdmin) {
       document.querySelectorAll('.edit-timer-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -123,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const maxTime = parseInt(document.getElementById('editMaxTime').value);
     const messageEl = document.getElementById('timerMessage');
 
-    if (isNaN(currentTime)) {
+    if (isNaN(currentTime) {
       messageEl.textContent = 'Введите корректное текущее время';
       messageEl.style.color = 'red';
       return;
@@ -137,67 +131,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const now = new Date().toISOString();
-      const { error } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('mines')
         .update({
           current_seconds: currentTime,
           max_seconds: maxTime,
           updated_at: now
         })
-        .eq('id', currentEditingMine.id);
+        .eq('id', currentEditingMine.id)
+        .select(); // Получаем обновленные данные
 
       if (error) throw error;
 
-      // Обновляем локальные данные
-      const mineIndex = mines.findIndex(m => m.id === currentEditingMine.id);
-      if (mineIndex !== -1) {
-        mines[mineIndex] = {
-          ...mines[mineIndex],
-          current_seconds: currentTime,
-          max_seconds: maxTime,
-          updated_at: now
-        };
-      }
-
+      // Жестко обновляем локальное состояние
+      mines = mines.map(m => 
+        m.id === currentEditingMine.id ? data[0] : m
+      );
+      
       messageEl.textContent = 'Изменения сохранены!';
       messageEl.style.color = 'green';
       updateTimers();
 
-      setTimeout(() => {
-        closeEditModal();
-      }, 1000);
+      setTimeout(() => closeEditModal(), 1000);
     } catch (err) {
       console.error('Ошибка сохранения:', err);
-      messageEl.textContent = 'Ошибка сохранения: ' + err.message;
+      messageEl.textContent = 'Ошибка: ' + err.message;
       messageEl.style.color = 'red';
     }
   };
 
   const startTimers = () => {
-    setInterval(async () => {
+    setInterval(() => {
       mines.forEach(mine => {
         mine.current_seconds = Math.max(0, mine.current_seconds - 1);
         if (mine.current_seconds <= 0) mine.current_seconds = mine.max_seconds;
       });
-      
       updateTimers();
-      if (Date.now() % 10000 < 50) await syncTimers();
     }, 1000);
-  };
-
-  const syncTimers = async () => {
-    const updates = mines.map(mine => ({
-      id: mine.id,
-      current_seconds: mine.current_seconds,
-      updated_at: new Date().toISOString()
-    }));
-    
-    const { error } = await supabaseClient.from('mines').upsert(updates);
-    if (error) console.error('Sync error:', error);
   };
 
   // ====================== ЧАТ ======================
   const renderChat = () => {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
     chatMessages.innerHTML = chatData.map(msg => `
       <div class="message">
         <strong>${msg.profiles?.username || 'Гость'}</strong>
@@ -246,6 +223,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   const sendMessage = async () => {
+    const chatInput = document.getElementById('chatInput');
+    if (!chatInput) return;
+    
     const message = chatInput.value.trim();
     if (!message) return;
 
@@ -253,7 +233,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) throw new Error('Требуется авторизация');
       
-      // Локальное добавление для мгновенного отображения
       const tempMsg = {
         id: Date.now(),
         message,
@@ -266,54 +245,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       const { error } = await supabaseClient
         .from('chat_messages')
-        .insert({ 
-          message, 
-          user_id: user.id 
-        });
+        .insert({ message, user_id: user.id });
       
       if (error) throw error;
       
-      // Обновляем после успешной отправки
       await loadChat();
     } catch (err) {
       console.error('Ошибка отправки:', err);
-      // Удаляем временное сообщение при ошибке
       chatData = chatData.filter(m => m.id !== tempMsg.id);
       renderChat();
       alert('Ошибка отправки: ' + err.message);
     }
   };
 
-  // Автообновление чата каждые 2 секунды
-  const startChatUpdater = () => {
-    setInterval(checkNewMessages, 2000);
-  };
-
-  // Обработчик выхода
-  logoutBtn.addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
-
-  // Инициализация приложения
+  // Инициализация
   const init = async () => {
     await loadMines();
     await loadChat();
-    startChatUpdater();
     
-    sendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
+    // Обработчики чата
+    const sendBtn = document.getElementById('sendBtn');
+    const chatInput = document.getElementById('chatInput');
+    
+    if (sendBtn && chatInput) {
+      sendBtn.addEventListener('click', sendMessage);
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+    }
 
     // Обработчики модального окна
-    document.querySelector('.close').addEventListener('click', closeEditModal);
-    document.getElementById('saveTimerBtn').addEventListener('click', saveTimerChanges);
+    document.querySelector('.close')?.addEventListener('click', closeEditModal);
+    document.getElementById('saveTimerBtn')?.addEventListener('click', saveTimerChanges);
+    
     window.addEventListener('click', (e) => {
       if (e.target === document.getElementById('editTimerModal')) {
         closeEditModal();
       }
     });
+
+    // Автообновление чата
+    setInterval(checkNewMessages, 2000);
   };
 
   init();
