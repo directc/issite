@@ -1,4 +1,3 @@
-import './online-users.js';
 document.addEventListener('DOMContentLoaded', async () => {
   // Проверка авторизации
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -6,7 +5,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html';
     return;
   }
-
+const onlineUsersScript = document.createElement('script');
+  onlineUsersScript.src = 'online-users.js';
+  document.body.appendChild(onlineUsersScript);
+  
   // Проверка срока действия аккаунта
   const { data: profile } = await supabaseClient
     .from('profiles')
