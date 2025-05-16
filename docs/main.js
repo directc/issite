@@ -59,6 +59,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data, error } = await supabaseClient.from('mines').select('*');
     if (!error) {
       mines = data.map(mine => {
+        // Если таймер был обновлен менее 10 секунд назад, не пересчитываем
+        const lastUpdated = new Date(mine.updated_at).getTime();
+        if (Date.now() - lastUpdated < 10000) {
+          return mine;
+        }
+        
         const elapsed = calculateElapsedTime(mine.updated_at);
         let current = mine.current_seconds - elapsed;
         if (current <= 0) {
@@ -130,12 +136,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
+      const now = new Date().toISOString();
       const { error } = await supabaseClient
         .from('mines')
         .update({
           current_seconds: currentTime,
           max_seconds: maxTime,
-          updated_at: new Date().toISOString()
+          updated_at: now
         })
         .eq('id', currentEditingMine.id);
 
@@ -147,7 +154,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         mines[mineIndex] = {
           ...mines[mineIndex],
           current_seconds: currentTime,
-          max_seconds: maxTime
+          max_seconds: maxTime,
+          updated_at: now
         };
       }
 
