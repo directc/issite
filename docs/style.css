@@ -225,3 +225,10 @@ button {
 .chat-section {
   position: relative;
 }
+
+.online-users-dropdown:empty::before {
+  content: "Нет активных пользователей";
+  color: #777;
+  padding: 10px;
+  display: block;
+}
