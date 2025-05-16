@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (activityError) throw activityError;
 
       // Получаем активных пользователей через представление
-      const timeThreshold = new Date(Date.now() - 60000).toISOString();
+      const timeThreshold = new Date(Date.now() - 3600000).toISOString();
       
       const { data: activeUsers, error: usersError } = await supabaseClient
         .from('online_users')
