@@ -58,8 +58,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         .select('*')
         .order('id', { ascending: true });
 
-      if (error) throw error;
-      if (!data) return;
+      if (error) {
+        console.log('Ошибка загрузки шахт:', error.message);
+        return;
+      }
 
       const now = new Date();
       mines = data.map(mine => {
@@ -81,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateTimers();
       startTimers();
     } catch (err) {
-      console.error('Ошибка загрузки шахт:', err);
+      console.log('Неожиданная ошибка загрузки:', err.message);
     }
   };
 
@@ -108,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
     } catch (err) {
-      console.error('Ошибка обновления таймеров:', err);
+      console.log('Ошибка обновления таймеров:', err.message);
     }
   };
 
@@ -162,7 +164,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (error) throw error;
       if (!data || data.length === 0) throw new Error('Данные не получены от сервера');
 
-      // Обновляем локальное состояние
       mines = mines.map(m => m.id === currentEditingMine.id ? data[0] : m);
       
       messageEl.textContent = 'Изменения сохранены!';
@@ -171,36 +172,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       setTimeout(() => closeEditModal(), 1000);
     } catch (err) {
-      console.error('Ошибка сохранения:', err);
+      console.log('Ошибка сохранения:', err.message);
       messageEl.textContent = 'Ошибка сохранения: ' + err.message;
       messageEl.style.color = 'red';
     }
   };
 
   const startTimers = () => {
-    // Очищаем предыдущие интервалы
     if (timerInterval) clearInterval(timerInterval);
     if (syncInterval) clearInterval(syncInterval);
 
-    // Основной интервал таймера
     timerInterval = setInterval(() => {
       mines = mines.map(mine => {
         let newSeconds = mine.current_seconds - 1;
         
         if (newSeconds <= 0) {
           newSeconds = mine.max_seconds;
-          
-          // Асинхронное обновление базы при сбросе таймера
-          supabaseClient
-            .from('mines')
-            .update({
-              current_seconds: newSeconds,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', mine.id)
-            .then(({ error }) => {
-              if (error) console.error('Ошибка сброса таймера:', error);
-            });
+          console.log(`Таймер ${mine.id} сброшен на ${newSeconds} сек`);
         }
         
         return {
@@ -212,7 +200,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateTimers();
     }, 1000);
 
-    // Интервал синхронизации с базой (каждые 10 секунд)
     syncInterval = setInterval(async () => {
       try {
         const updates = mines
@@ -224,13 +211,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           }));
         
         if (updates.length > 0) {
-          const { error } = await supabaseClient.from('mines').upsert(updates);
-          if (error) console.error('Ошибка синхронизации:', error);
+          const { error } = await supabaseClient
+            .from('mines')
+            .upsert(updates, { onConflict: 'id' });
+          
+          if (error) console.log('Ошибка синхронизации (не критично):', error.message);
         }
       } catch (err) {
-        console.error('Ошибка синхронизации:', err);
+        console.log('Ошибка синхронизации:', err.message);
       }
-    }, 10000);
+    }, 15000);
   };
 
   // ====================== ЧАТ ======================
@@ -266,7 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       renderChat();
     } catch (err) {
-      console.error('Ошибка загрузки чата:', err);
+      console.log('Ошибка загрузки чата:', err.message);
     }
   };
 
@@ -283,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadChat();
       }
     } catch (err) {
-      console.error('Ошибка проверки новых сообщений:', err);
+      console.log('Ошибка проверки новых сообщений:', err.message);
     }
   };
 
@@ -316,7 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       await loadChat();
     } catch (err) {
-      console.error('Ошибка отправки:', err);
+      console.log('Ошибка отправки:', err.message);
       chatData = chatData.filter(m => m.id !== tempMsg.id);
       renderChat();
       alert('Ошибка отправки: ' + err.message);
@@ -353,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Автообновление чата
       setInterval(checkNewMessages, 2000);
     } catch (err) {
-      console.error('Ошибка инициализации:', err);
+      console.log('Ошибка инициализации:', err.message);
     }
   };
 
