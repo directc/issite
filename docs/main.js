@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const maxTime = parseInt(document.getElementById('editMaxTime').value);
     const messageEl = document.getElementById('timerMessage');
 
-    if (isNaN(currentTime) {
+    if (isNaN(currentTime)) {
       messageEl.textContent = 'Введите корректное текущее время';
       messageEl.style.color = 'red';
       return;
