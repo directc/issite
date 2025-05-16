@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       timersContainer.innerHTML = mines.map(mine => `
         <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}" data-id="${mine.id}">
-          <span class="timer-name">${mine.name}</span>
+          <span class="timer-name">${mine.name || 'Шахта'}</span>
           <span class="timer-time">${formatTime(mine.current_seconds)} / ${formatTime(mine.max_seconds)}</span>
           ${isAdmin ? '<button class="edit-timer-btn">✏️</button>' : ''}
         </div>
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!mine) return;
 
     currentEditingMine = mine;
-    document.getElementById('editTimerName').value = mine.name;
+    document.getElementById('editTimerName').value = mine.name || '';
     document.getElementById('editCurrentTime').value = mine.current_seconds;
     document.getElementById('editMaxTime').value = mine.max_seconds;
     document.getElementById('timerMessage').textContent = '';
@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentTime = parseInt(document.getElementById('editCurrentTime').value);
     const maxTime = parseInt(document.getElementById('editMaxTime').value);
+    const name = document.getElementById('editTimerName').value.trim() || 'Шахта';
     const messageEl = document.getElementById('timerMessage');
 
     if (isNaN(currentTime)) {
@@ -154,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { data, error } = await supabaseClient
         .from('mines')
         .update({
+          name: name,
           current_seconds: currentTime,
           max_seconds: maxTime,
           updated_at: new Date().toISOString()
@@ -203,10 +205,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncInterval = setInterval(async () => {
       try {
         const updates = mines
-          .filter(mine => mine.current_seconds > 0 && mine.current_seconds < mine.max_seconds)
+          .filter(mine => 
+            mine.current_seconds > 0 && 
+            mine.current_seconds < mine.max_seconds &&
+            mine.name
+          )
           .map(mine => ({
             id: mine.id,
+            name: mine.name || 'Шахта',
             current_seconds: mine.current_seconds,
+            max_seconds: mine.max_seconds,
             updated_at: new Date().toISOString()
           }));
         
