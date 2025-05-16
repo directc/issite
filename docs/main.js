@@ -6,10 +6,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const onlineUsersScript = document.createElement('script');
-  onlineUsersScript.src = 'online-users.js';
-  document.body.appendChild(onlineUsersScript);
-  
   // Проверка срока действия аккаунта
   const { data: profile } = await supabaseClient
     .from('profiles')
@@ -36,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = 'admin.html';
     });
   }
-  
+
   // Состояние приложения
   let mines = [];
   let chatData = [];
@@ -55,17 +51,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data, error } = await supabaseClient
       .from('mines')
       .select('*')
-      .order('updated_at', { ascending: false }); // Сначала свежие записи
+      .order('id', { ascending: true });
 
     if (!error) {
-      mines = data.map(mine => ({
-        ...mine,
-        current_seconds: mine.current_seconds // Берем значения как есть из БД
-      }));
+      const now = new Date();
+      mines = data.map(mine => {
+        const lastUpdated = new Date(mine.updated_at);
+        const elapsedSeconds = Math.floor((now - lastUpdated) / 1000);
+        let currentSeconds = mine.current_seconds - elapsedSeconds;
+
+        // Корректируем если таймер завершил цикл
+        while (currentSeconds <= 0) {
+          currentSeconds += mine.max_seconds;
+        }
+
+        return {
+          ...mine,
+          current_seconds: Math.min(currentSeconds, mine.max_seconds)
+        };
+      });
       updateTimers();
       startTimers();
-    } else {
-      console.error('Ошибка загрузки шахт:', error);
     }
   };
 
@@ -81,7 +87,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `).join('');
 
-    // Обработчики для кнопок редактирования
     if (isAdmin) {
       document.querySelectorAll('.edit-timer-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -117,7 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const maxTime = parseInt(document.getElementById('editMaxTime').value);
     const messageEl = document.getElementById('timerMessage');
 
-    if (isNaN(currentTime)) {
+    if (isNaN(currentTime) {
       messageEl.textContent = 'Введите корректное текущее время';
       messageEl.style.color = 'red';
       return;
@@ -139,11 +144,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           updated_at: now
         })
         .eq('id', currentEditingMine.id)
-        .select(); // Получаем обновленные данные
+        .select();
 
       if (error) throw error;
 
-      // Жестко обновляем локальное состояние
       mines = mines.map(m => m.id === currentEditingMine.id ? data[0] : m);
       updateTimers();
       messageEl.textContent = 'Изменения сохранены!';
@@ -159,11 +163,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const startTimers = () => {
     setInterval(() => {
       mines.forEach(mine => {
-        mine.current_seconds = Math.max(0, mine.current_seconds - 1);
-        if (mine.current_seconds <= 0) mine.current_seconds = mine.max_seconds;
+        mine.current_seconds--;
+        if (mine.current_seconds <= 0) {
+          mine.current_seconds = mine.max_seconds;
+        }
       });
       updateTimers();
     }, 1000);
+
+    // Синхронизация каждые 10 секунд
+    setInterval(async () => {
+      const updates = mines.map(mine => ({
+        id: mine.id,
+        current_seconds: mine.current_seconds,
+        updated_at: new Date().toISOString()
+      }));
+      
+      const { error } = await supabaseClient.from('mines').upsert(updates);
+      if (error) console.error('Ошибка синхронизации:', error);
+    }, 10000);
   };
 
   // ====================== ЧАТ ======================
