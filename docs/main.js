@@ -1,3 +1,4 @@
+import './online-users.js';
 document.addEventListener('DOMContentLoaded', async () => {
   // Проверка авторизации
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
