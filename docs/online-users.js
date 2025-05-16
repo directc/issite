@@ -24,16 +24,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (activityError) throw activityError;
 
-      // Получаем активных пользователей
+      // Получаем активных пользователей через представление
       const timeThreshold = new Date(Date.now() - 60000).toISOString();
       
       const { data: activeUsers, error: usersError } = await supabaseClient
-        .from('user_activity')
-        .select(`
-          user_id,
-          last_seen,
-          profiles:user_id (username)
-        `)
+        .from('online_users')
+        .select('*')
         .gt('last_seen', timeThreshold);
 
       if (usersError) throw usersError;
@@ -58,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return `
         <div class="online-user">
           <span class="online-status ${isOnline ? 'online' : 'offline'}"></span>
-          ${user.profiles?.username || 'Unknown'}
+          ${user.username || 'Unknown'}
           ${!isOnline ? `<span class="last-seen">(${secondsAgo} сек назад)</span>` : ''}
         </div>
       `;
