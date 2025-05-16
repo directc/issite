@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Объявляем переменные для интервалов
+  // Инициализация переменных
   let timerInterval = null;
   let syncInterval = null;
 
@@ -62,63 +62,64 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!data) return;
 
       const now = new Date();
-      mines = data.filter(mine => mine).map(mine => {
-        if (!mine?.updated_at) return null;
-        
+      mines = data.map(mine => {
         const lastUpdated = new Date(mine.updated_at);
         const elapsedSeconds = Math.floor((now - lastUpdated) / 1000);
-        let currentSeconds = (mine.current_seconds || 0) - elapsedSeconds;
+        let currentSeconds = mine.current_seconds - elapsedSeconds;
 
-        while (currentSeconds <= 0 && mine.max_seconds) {
+        // Корректируем если таймер завершил цикл
+        while (currentSeconds <= 0) {
           currentSeconds += mine.max_seconds;
         }
 
         return {
           ...mine,
-          current_seconds: Math.min(currentSeconds, mine.max_seconds || 0)
+          current_seconds: Math.min(currentSeconds, mine.max_seconds)
         };
-      }).filter(Boolean);
+      });
 
-      if (mines.length) {
-        updateTimers();
-        startTimers();
-      }
+      updateTimers();
+      startTimers();
     } catch (err) {
       console.error('Ошибка загрузки шахт:', err);
     }
   };
 
   const updateTimers = () => {
-    const timersContainer = document.getElementById('timersContainer');
-    if (!timersContainer || !mines.length) return;
+    try {
+      const timersContainer = document.getElementById('timersContainer');
+      if (!timersContainer) return;
 
-    timersContainer.innerHTML = mines.filter(mine => mine).map(mine => `
-      <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}" data-id="${mine.id}">
-        <span class="timer-name">${mine.name || 'Без названия'}</span>
-        <span class="timer-time">${formatTime(mine.current_seconds)} / ${formatTime(mine.max_seconds)}</span>
-        ${isAdmin ? '<button class="edit-timer-btn">✏️</button>' : ''}
-      </div>
-    `).join('');
+      timersContainer.innerHTML = mines.map(mine => `
+        <div class="timer ${mine.current_seconds <= 60 ? 'warning' : ''}" data-id="${mine.id}">
+          <span class="timer-name">${mine.name}</span>
+          <span class="timer-time">${formatTime(mine.current_seconds)} / ${formatTime(mine.max_seconds)}</span>
+          ${isAdmin ? '<button class="edit-timer-btn">✏️</button>' : ''}
+        </div>
+      `).join('');
 
-    if (isAdmin) {
-      document.querySelectorAll('.edit-timer-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const timerId = parseInt(btn.closest('.timer').dataset.id);
-          if (timerId) openEditModal(timerId);
+      if (isAdmin) {
+        document.querySelectorAll('.edit-timer-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const timerId = parseInt(btn.closest('.timer').dataset.id);
+            openEditModal(timerId);
+          });
         });
-      });
+      }
+    } catch (err) {
+      console.error('Ошибка обновления таймеров:', err);
     }
   };
 
   const openEditModal = (timerId) => {
-    const mine = mines.find(m => m?.id === timerId);
+    const mine = mines.find(m => m.id === timerId);
     if (!mine) return;
 
     currentEditingMine = mine;
-    document.getElementById('editTimerName').value = mine.name || '';
-    document.getElementById('editCurrentTime').value = mine.current_seconds || 0;
-    document.getElementById('editMaxTime').value = mine.max_seconds || 0;
+    document.getElementById('editTimerName').value = mine.name;
+    document.getElementById('editCurrentTime').value = mine.current_seconds;
+    document.getElementById('editMaxTime').value = mine.max_seconds;
     document.getElementById('timerMessage').textContent = '';
     document.getElementById('editTimerModal').style.display = 'block';
   };
@@ -129,15 +130,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   const saveTimerChanges = async () => {
-    if (!currentEditingMine?.id) return;
+    if (!currentEditingMine) return;
+
+    const currentTime = parseInt(document.getElementById('editCurrentTime').value);
+    const maxTime = parseInt(document.getElementById('editMaxTime').value);
+    const messageEl = document.getElementById('timerMessage');
+
+    if (isNaN(currentTime)) {
+      messageEl.textContent = 'Введите корректное текущее время';
+      messageEl.style.color = 'red';
+      return;
+    }
+
+    if (isNaN(maxTime) || maxTime <= 0) {
+      messageEl.textContent = 'Введите корректное максимальное время';
+      messageEl.style.color = 'red';
+      return;
+    }
 
     try {
-      const currentTime = parseInt(document.getElementById('editCurrentTime')?.value || 0);
-      const maxTime = parseInt(document.getElementById('editMaxTime')?.value || 0);
-      
-      if (isNaN(currentTime)) throw new Error('Некорректное текущее время');
-      if (isNaN(maxTime)) throw new Error('Некорректное максимальное время');
-
       const { data, error } = await supabaseClient
         .from('mines')
         .update({
@@ -149,45 +160,70 @@ document.addEventListener('DOMContentLoaded', async () => {
         .select();
 
       if (error) throw error;
-      if (!data?.[0]) throw new Error('Данные не получены');
+      if (!data || data.length === 0) throw new Error('Данные не получены от сервера');
 
+      // Обновляем локальное состояние
       mines = mines.map(m => m.id === currentEditingMine.id ? data[0] : m);
+      
+      messageEl.textContent = 'Изменения сохранены!';
+      messageEl.style.color = 'green';
       updateTimers();
-      closeEditModal();
+
+      setTimeout(() => closeEditModal(), 1000);
     } catch (err) {
       console.error('Ошибка сохранения:', err);
-      const messageEl = document.getElementById('timerMessage');
-      if (messageEl) {
-        messageEl.textContent = 'Ошибка: ' + err.message;
-        messageEl.style.color = 'red';
-      }
+      messageEl.textContent = 'Ошибка сохранения: ' + err.message;
+      messageEl.style.color = 'red';
     }
   };
 
   const startTimers = () => {
+    // Очищаем предыдущие интервалы
     if (timerInterval) clearInterval(timerInterval);
     if (syncInterval) clearInterval(syncInterval);
 
+    // Основной интервал таймера
     timerInterval = setInterval(() => {
-      mines = mines.filter(mine => mine).map(mine => {
-        if (mine.current_seconds === undefined) return mine;
+      mines = mines.map(mine => {
+        let newSeconds = mine.current_seconds - 1;
+        
+        if (newSeconds <= 0) {
+          newSeconds = mine.max_seconds;
+          
+          // Асинхронное обновление базы при сбросе таймера
+          supabaseClient
+            .from('mines')
+            .update({
+              current_seconds: newSeconds,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', mine.id)
+            .then(({ error }) => {
+              if (error) console.error('Ошибка сброса таймера:', error);
+            });
+        }
+        
         return {
           ...mine,
-          current_seconds: Math.max(0, (mine.current_seconds || 0) - 1)
+          current_seconds: newSeconds
         };
       });
+      
       updateTimers();
     }, 1000);
 
+    // Интервал синхронизации с базой (каждые 10 секунд)
     syncInterval = setInterval(async () => {
       try {
-        const updates = mines.filter(mine => mine?.id).map(mine => ({
-          id: mine.id,
-          current_seconds: mine.current_seconds,
-          updated_at: new Date().toISOString()
-        }));
+        const updates = mines
+          .filter(mine => mine.current_seconds > 0 && mine.current_seconds < mine.max_seconds)
+          .map(mine => ({
+            id: mine.id,
+            current_seconds: mine.current_seconds,
+            updated_at: new Date().toISOString()
+          }));
         
-        if (updates.length) {
+        if (updates.length > 0) {
           const { error } = await supabaseClient.from('mines').upsert(updates);
           if (error) console.error('Ошибка синхронизации:', error);
         }
@@ -202,7 +238,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chatMessages = document.getElementById('chatMessages');
     if (!chatMessages) return;
     
-    chatMessages.innerHTML = chatData.filter(msg => msg).map(msg => `
+    chatMessages.innerHTML = chatData.map(msg => `
       <div class="message">
         <strong>${msg.profiles?.username || 'Гость'}</strong>
         <span class="message-time">
@@ -223,11 +259,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         .limit(50);
       
       if (error) throw error;
-      if (!data) return;
-
-      chatData = data.filter(msg => msg);
+      
+      chatData = data;
       if (data.length > 0) {
-        lastMessageId = data[data.length - 1].id || 0;
+        lastMessageId = data[data.length - 1].id;
       }
       renderChat();
     } catch (err) {
@@ -244,7 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .order('id', { ascending: false })
         .limit(1);
       
-      if (data?.length > 0) {
+      if (data && data.length > 0) {
         await loadChat();
       }
     } catch (err) {
@@ -269,7 +304,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         created_at: new Date().toISOString(),
         profiles: { username: user.email.split('@')[0] }
       };
-      
       chatData.push(tempMsg);
       renderChat();
       chatInput.value = '';
@@ -283,13 +317,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       await loadChat();
     } catch (err) {
       console.error('Ошибка отправки:', err);
-      chatData = chatData.filter(m => m?.id !== tempMsg?.id);
+      chatData = chatData.filter(m => m.id !== tempMsg.id);
       renderChat();
       alert('Ошибка отправки: ' + err.message);
     }
   };
 
-  // Инициализация
+  // Инициализация приложения
   const init = async () => {
     try {
       await loadMines();
