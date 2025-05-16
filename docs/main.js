@@ -144,14 +144,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (error) throw error;
 
       // Жестко обновляем локальное состояние
-      mines = mines.map(m => 
-        m.id === currentEditingMine.id ? data[0] : m
-      );
-      
+      mines = mines.map(m => m.id === currentEditingMine.id ? data[0] : m);
+      updateTimers();
       messageEl.textContent = 'Изменения сохранены!';
       messageEl.style.color = 'green';
-      updateTimers();
-
       setTimeout(() => closeEditModal(), 1000);
     } catch (err) {
       console.error('Ошибка сохранения:', err);
