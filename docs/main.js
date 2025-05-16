@@ -57,11 +57,11 @@ const saveTimerChanges = async () => {
   if (!currentEditingMine?.id) return;
 
   try {
-    const currentTime = parseInt(document.getElementById('editCurrentTime')?.value || 0;
-    const maxTime = parseInt(document.getElementById('editMaxTime')?.value || 0;
+    const currentTime = parseInt(document.getElementById('editCurrentTime')?.value || 0);
+    const maxTime = parseInt(document.getElementById('editMaxTime')?.value || 0);
     
-    if (isNaN(currentTime)) throw new Error('Некорректное текущее время');
-    if (isNaN(maxTime)) throw new Error('Некорректное максимальное время');
+    if (isNaN(currentTime) throw new Error('Некорректное текущее время');
+    if (isNaN(maxTime) throw new Error('Некорректное максимальное время');
 
     const { data, error } = await supabaseClient
       .from('mines')
