@@ -9,7 +9,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html';
     return;
   }
-
+  
+ // Обработчики
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+  
   // Проверка срока действия аккаунта
   const { data: profile } = await supabaseClient
     .from('profiles')
