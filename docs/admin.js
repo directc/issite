@@ -89,9 +89,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Загрузка списка пользователей
   const loadUsersList = async () => {
     try {
+      // Получаем пользователей через auth API
       const { data: { users }, error: authError } = await supabaseAdminClient.auth.admin.listUsers();
       if (authError) throw authError;
 
+      // Получаем профили
       const userIds = users.map(u => u.id);
       const { data: profiles, error: profilesError } = await supabaseClient
         .from('profiles')
@@ -100,6 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (profilesError) throw profilesError;
 
+      // Объединяем данные и сортируем по дате создания (новые сверху)
       const mergedUsers = users.map(authUser => {
         const profile = profiles.find(p => p.user_id === authUser.id) || {};
         return {
@@ -129,6 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const username = user.username || email.split('@')[0];
       const isAdmin = user.is_admin ? 'Администратор' : 'Пользователь';
       
+      // Форматируем срок действия
       let expiresText = 'Бессрочно';
       if (user.expires_at) {
         const expiresDate = new Date(user.expires_at);
@@ -175,20 +179,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Модальное окно редактирования пользователя
   const openEditUserModal = (userId) => {
-    const userRow = document.querySelector(`[data-user-id="${userId}"]`).closest('tr');
-    const expiresText = userRow.cells[3].textContent;
-    
-    // Создаем модальное окно
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
       <div class="modal-content">
         <span class="close-modal">&times;</span>
         <h2>Изменение срока действия</h2>
-        <div class="form-group">
-          <label>Текущий статус:</label>
-          <p>${expiresText}</p>
-        </div>
         <div class="form-group">
           <label for="editExpiryDays">Новый срок действия (дней):</label>
           <input type="number" id="editExpiryDays" value="30" min="1">
@@ -239,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         setTimeout(() => {
           modal.remove();
-          loadUsersList();
+          loadUsersList(); // Обновляем список после сохранения
         }, 1000);
       } catch (err) {
         document.getElementById('expiryMessage').textContent = 'Ошибка: ' + err.message;
