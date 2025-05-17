@@ -1,3 +1,4 @@
+// admin.js - админ панель
 document.addEventListener('DOMContentLoaded', async () => {
   // Проверка прав через обычный клиент
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -90,23 +91,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Загрузка списка пользователей
   const loadUsersList = async () => {
     try {
-      const { data: users, error } = await supabaseClient
+      // Сначала получаем профили
+      const { data: profiles, error: profilesError } = await supabaseClient
         .from('profiles')
-        .select(`
-          user_id,
-          username,
-          is_admin,
-          expires_at,
-          auth_users:user_id (email)
-        `)
+        .select('user_id, username, is_admin, expires_at')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
+
+      // Получаем email пользователей из auth.users
+      const userIds = profiles.map(p => p.user_id);
+      const { data: authUsers, error: authError } = await supabaseClient
+        .from('users')
+        .select('id, email')
+        .in('id', userIds);
+
+      if (authError) throw authError;
+
+      // Объединяем данные
+      const users = profiles.map(profile => {
+        const authUser = authUsers.find(u => u.id === profile.user_id);
+        return {
+          ...profile,
+          email: authUser?.email || 'Неизвестно'
+        };
+      });
 
       renderUsersList(users);
     } catch (err) {
       console.error('Ошибка загрузки пользователей:', err);
-      showMessage('Ошибка загрузки пользователей', 'error');
+      showMessage('Ошибка загрузки пользователей: ' + err.message, 'error');
     }
   };
 
@@ -116,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!usersListBody) return;
 
     usersListBody.innerHTML = users.map(user => {
-      const email = user.auth_users?.email || 'Неизвестно';
+      const email = user.email || 'Неизвестно';
       const username = user.username || email.split('@')[0];
       const isAdmin = user.is_admin ? 'Администратор' : 'Пользователь';
       
