@@ -1,4 +1,3 @@
-// admin.js - админ панель
 document.addEventListener('DOMContentLoaded', async () => {
   // Проверка прав через обычный клиент
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -63,7 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('newUserEmail').value = '';
       document.getElementById('newUserPassword').value = '';
       
-      // Обновляем список пользователей
       await loadUsersList();
     } catch (err) {
       showMessage('Ошибка: ' + err.message, 'error');
@@ -91,11 +89,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Загрузка списка пользователей
   const loadUsersList = async () => {
     try {
-      // Получаем пользователей через auth API
       const { data: { users }, error: authError } = await supabaseAdminClient.auth.admin.listUsers();
       if (authError) throw authError;
 
-      // Получаем профили
       const userIds = users.map(u => u.id);
       const { data: profiles, error: profilesError } = await supabaseClient
         .from('profiles')
@@ -104,7 +100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (profilesError) throw profilesError;
 
-      // Объединяем данные и сортируем по дате создания (новые сверху)
       const mergedUsers = users.map(authUser => {
         const profile = profiles.find(p => p.user_id === authUser.id) || {};
         return {
@@ -134,7 +129,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const username = user.username || email.split('@')[0];
       const isAdmin = user.is_admin ? 'Администратор' : 'Пользователь';
       
-      // Форматируем срок действия
       let expiresText = 'Бессрочно';
       if (user.expires_at) {
         const expiresDate = new Date(user.expires_at);
@@ -154,21 +148,138 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td>${username}</td>
           <td>${isAdmin}</td>
           <td>${expiresText}</td>
-          <td>
-            <button class="action-btn" data-user-id="${user.user_id}">Изменить</button>
+          <td class="actions-cell">
+            <button class="edit-btn" data-user-id="${user.user_id}">Изменить срок</button>
+            <button class="delete-btn" data-user-id="${user.user_id}">Удалить</button>
           </td>
         </tr>
       `;
     }).join('');
 
-    // Добавляем обработчики для кнопок действий
-    document.querySelectorAll('.action-btn').forEach(btn => {
+    // Обработчики для кнопок редактирования
+    document.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const userId = e.target.dataset.userId;
-        // Здесь можно добавить логику для изменения пользователя
-        alert(`Редактирование пользователя ${userId}`);
+        openEditUserModal(userId);
       });
     });
+
+    // Обработчики для кнопок удаления
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const userId = e.target.dataset.userId;
+        deleteUser(userId);
+      });
+    });
+  };
+
+  // Модальное окно редактирования пользователя
+  const openEditUserModal = (userId) => {
+    const userRow = document.querySelector(`[data-user-id="${userId}"]`).closest('tr');
+    const expiresText = userRow.cells[3].textContent;
+    
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Изменение срока действия</h2>
+        <div class="form-group">
+          <label>Текущий статус:</label>
+          <p>${expiresText}</p>
+        </div>
+        <div class="form-group">
+          <label for="editExpiryDays">Новый срок действия (дней):</label>
+          <input type="number" id="editExpiryDays" value="30" min="1">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="setUnlimited"> Бессрочный доступ
+          </label>
+        </div>
+        <button id="saveExpiryBtn">Сохранить</button>
+        <div id="expiryMessage" class="message"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+
+    // Обработчики для модального окна
+    document.querySelector('.close-modal').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    document.getElementById('setUnlimited').addEventListener('change', (e) => {
+      document.getElementById('editExpiryDays').disabled = e.target.checked;
+    });
+
+    document.getElementById('saveExpiryBtn').addEventListener('click', async () => {
+      const expiryDays = parseInt(document.getElementById('editExpiryDays').value) || 30;
+      const isUnlimited = document.getElementById('setUnlimited').checked;
+      
+      try {
+        let expiresAt = null;
+        if (!isUnlimited) {
+          expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + expiryDays);
+          expiresAt = expiresAt.toISOString();
+        }
+
+        const { error } = await supabaseClient
+          .from('profiles')
+          .update({ expires_at: expiresAt })
+          .eq('user_id', userId);
+
+        if (error) throw error;
+
+        document.getElementById('expiryMessage').textContent = 'Изменения сохранены!';
+        document.getElementById('expiryMessage').style.color = 'green';
+        
+        setTimeout(() => {
+          modal.remove();
+          loadUsersList();
+        }, 1000);
+      } catch (err) {
+        document.getElementById('expiryMessage').textContent = 'Ошибка: ' + err.message;
+        document.getElementById('expiryMessage').style.color = 'red';
+        console.error(err);
+      }
+    });
+
+    window.onclick = (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    };
+  };
+
+  // Удаление пользователя
+  const deleteUser = async (userId) => {
+    if (!confirm('Вы уверены, что хотите удалить этого пользователя? Это действие нельзя отменить.')) {
+      return;
+    }
+
+    try {
+      // Удаляем профиль
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (profileError) throw profileError;
+
+      // Удаляем пользователя через auth API
+      const { error: authError } = await supabaseAdminClient.auth.admin.deleteUser(userId);
+      if (authError) throw authError;
+
+      showMessage('Пользователь удален', 'success');
+      await loadUsersList();
+    } catch (err) {
+      showMessage('Ошибка удаления: ' + err.message, 'error');
+      console.error(err);
+    }
   };
 
   function showMessage(text, type, elementId = 'userMessage') {
