@@ -91,33 +91,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Загрузка списка пользователей
   const loadUsersList = async () => {
     try {
-      // Сначала получаем профили
+      // Получаем пользователей через auth API
+      const { data: { users }, error: authError } = await supabaseAdminClient.auth.admin.listUsers();
+      if (authError) throw authError;
+
+      // Получаем профили
+      const userIds = users.map(u => u.id);
       const { data: profiles, error: profilesError } = await supabaseClient
         .from('profiles')
         .select('user_id, username, is_admin, expires_at')
-        .order('created_at', { ascending: false });
+        .in('user_id', userIds);
 
       if (profilesError) throw profilesError;
 
-      // Получаем email пользователей из auth.users
-      const userIds = profiles.map(p => p.user_id);
-      const { data: authUsers, error: authError } = await supabaseClient
-        .from('users')
-        .select('id, email')
-        .in('id', userIds);
-
-      if (authError) throw authError;
-
-      // Объединяем данные
-      const users = profiles.map(profile => {
-        const authUser = authUsers.find(u => u.id === profile.user_id);
+      // Объединяем данные и сортируем по дате создания (новые сверху)
+      const mergedUsers = users.map(authUser => {
+        const profile = profiles.find(p => p.user_id === authUser.id) || {};
         return {
-          ...profile,
-          email: authUser?.email || 'Неизвестно'
+          user_id: authUser.id,
+          email: authUser.email,
+          username: profile.username || authUser.email.split('@')[0],
+          is_admin: profile.is_admin || false,
+          expires_at: profile.expires_at || null,
+          created_at: authUser.created_at
         };
-      });
+      }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      renderUsersList(users);
+      renderUsersList(mergedUsers);
     } catch (err) {
       console.error('Ошибка загрузки пользователей:', err);
       showMessage('Ошибка загрузки пользователей: ' + err.message, 'error');
