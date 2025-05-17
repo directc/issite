@@ -1,4 +1,3 @@
-// admin.js - админ панель
 document.addEventListener('DOMContentLoaded', async () => {
   // Проверка прав через обычный клиент
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
@@ -62,6 +61,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       showMessage('Пользователь создан!', 'success');
       document.getElementById('newUserEmail').value = '';
       document.getElementById('newUserPassword').value = '';
+      
+      // Обновляем список пользователей
+      await loadUsersList();
     } catch (err) {
       showMessage('Ошибка: ' + err.message, 'error');
       console.error(err);
@@ -85,6 +87,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Загрузка списка пользователей
+  const loadUsersList = async () => {
+    try {
+      const { data: users, error } = await supabaseClient
+        .from('profiles')
+        .select(`
+          user_id,
+          username,
+          is_admin,
+          expires_at,
+          auth_users:user_id (email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      renderUsersList(users);
+    } catch (err) {
+      console.error('Ошибка загрузки пользователей:', err);
+      showMessage('Ошибка загрузки пользователей', 'error');
+    }
+  };
+
+  // Отображение списка пользователей
+  const renderUsersList = (users) => {
+    const usersListBody = document.getElementById('usersListBody');
+    if (!usersListBody) return;
+
+    usersListBody.innerHTML = users.map(user => {
+      const email = user.auth_users?.email || 'Неизвестно';
+      const username = user.username || email.split('@')[0];
+      const isAdmin = user.is_admin ? 'Администратор' : 'Пользователь';
+      
+      // Форматируем срок действия
+      let expiresText = 'Бессрочно';
+      if (user.expires_at) {
+        const expiresDate = new Date(user.expires_at);
+        const now = new Date();
+        const diffDays = Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24));
+        
+        if (expiresDate < now) {
+          expiresText = `Истек ${expiresDate.toLocaleDateString()}`;
+        } else {
+          expiresText = `${diffDays} дней (до ${expiresDate.toLocaleDateString()})`;
+        }
+      }
+
+      return `
+        <tr>
+          <td>${email}</td>
+          <td>${username}</td>
+          <td>${isAdmin}</td>
+          <td>${expiresText}</td>
+          <td>
+            <button class="action-btn" data-user-id="${user.user_id}">Изменить</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Добавляем обработчики для кнопок действий
+    document.querySelectorAll('.action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const userId = e.target.dataset.userId;
+        // Здесь можно добавить логику для изменения пользователя
+        alert(`Редактирование пользователя ${userId}`);
+      });
+    });
+  };
+
   function showMessage(text, type, elementId = 'userMessage') {
     const el = document.getElementById(elementId);
     el.textContent = text;
@@ -92,4 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     el.style.display = 'block';
     setTimeout(() => el.style.display = 'none', 3000);
   }
+
+  // Инициализация
+  loadUsersList();
 });
